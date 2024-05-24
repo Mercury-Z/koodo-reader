@@ -11,6 +11,7 @@ import Viewer from "../../containers/htmlViewer";
 import { Tooltip } from "react-tooltip";
 import RecordLocation from "../../utils/readUtils/recordLocation";
 import "./index.css";
+import axios from "axios";
 declare var window: any;
 
 let lock = false; //prevent from clicking too fasts
@@ -54,17 +55,32 @@ class Reader extends React.Component<ReaderProps, ReaderState> {
     let url = document.location.href;
     let firstIndexOfQuestion = url.indexOf("?");
     let lastIndexOfSlash = url.lastIndexOf("/", firstIndexOfQuestion);
+    //图书的key
     let key = url.substring(lastIndexOfSlash + 1, firstIndexOfQuestion);
     this.props.handleFetchBooks();
-    window.localforage.getItem("books").then((result: any) => {
+    //先找本地缓存
+    window.localforage.getItem("books").then(async (result: any) => {
       let book;
       //兼容在主窗口打开
       if (this.props.currentBook.key) {
         book = this.props.currentBook;
       } else {
-        book =
-          result[window._.findIndex(result, { key })] ||
-          JSON.parse(localStorage.getItem("tempBook") || "{}");
+        //远程请求获取book
+      await  axios.post('http://127.0.0.1:8080/book/getBook', {
+                key: key,
+            }).then(function (response) {
+                console.log(response);
+                book = response.data
+                // result[window._.findIndex(result, { key })] ||
+                // JSON.parse(localStorage.getItem("tempBook") || "{}");
+            }).catch(function (error) {
+                console.log(error);
+            });
+
+            // book =
+            // result[window._.findIndex(result, { key })] ||
+            // JSON.parse(localStorage.getItem("tempBook") || "{}");
+
       }
       this.props.handleReadingBook(book);
       this.props.handleFetchPercentage(book);

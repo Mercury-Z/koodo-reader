@@ -16,6 +16,7 @@ import toast from "react-hot-toast";
 import StorageUtil from "../../utils/serviceUtils/storageUtil";
 
 import ShelfUtil from "../../utils/readUtils/shelfUtil";
+import axios from "axios";
 declare var window: any;
 let clickFilePath = "";
 
@@ -100,10 +101,12 @@ class ImportLocal extends React.Component<ImportLocalProps, ImportLocalState> {
           return resolve();
         }
       } else {
+        //保存书籍内容
         StorageUtil.getReaderConfig("isImportPath") !== "yes" &&
           BookUtil.addBook(book.key, buffer);
       }
 
+      //保存书籍信息
       let bookArr = [...(this.props.books || []), ...this.props.deletedBooks];
       if (bookArr == null) {
         bookArr = [];
@@ -111,33 +114,65 @@ class ImportLocal extends React.Component<ImportLocalProps, ImportLocalState> {
       bookArr.push(book);
       this.props.handleReadingBook(book);
       RecordRecent.setRecent(book.key);
-      window.localforage
-        .setItem("books", bookArr)
-        .then(() => {
-          this.props.handleFetchBooks();
-          if (this.props.mode === "shelf") {
-            let shelfTitles = Object.keys(ShelfUtil.getShelf());
-            ShelfUtil.setShelf(shelfTitles[this.props.shelfIndex], book.key);
-          }
-          toast.success(this.props.t("Addition successful"));
-          setTimeout(() => {
-            this.state.isOpenFile && this.handleJump(book);
-            if (
-              StorageUtil.getReaderConfig("isOpenInMain") === "yes" &&
-              this.state.isOpenFile
-            ) {
-              this.setState({ isOpenFile: false });
-              return;
-            }
+
+
+      axios.post('http://127.0.0.1:8080/book/addBook',  book).then( (response) => {
+        console.log(response);
+
+        this.props.handleFetchBooks();
+        if (this.props.mode === "shelf") {
+          let shelfTitles = Object.keys(ShelfUtil.getShelf());
+          ShelfUtil.setShelf(shelfTitles[this.props.shelfIndex], book.key);
+        }
+        toast.success(this.props.t("Addition successful"));
+        setTimeout(() => {
+          this.state.isOpenFile && this.handleJump(book);
+          if (
+            StorageUtil.getReaderConfig("isOpenInMain") === "yes" &&
+            this.state.isOpenFile
+          ) {
             this.setState({ isOpenFile: false });
-            this.props.history.push("/manager/home");
-          }, 100);
-          return resolve();
-        })
-        .catch(() => {
-          toast.error(this.props.t("Import failed"));
-          return resolve();
-        });
+            return;
+          }
+          this.setState({ isOpenFile: false });
+          this.props.history.push("/manager/home");
+        }, 100);
+        return resolve();
+
+
+      }).catch( (error) => {
+        console.log(error);
+        toast.error(this.props.t("Import failed"));
+        return resolve();
+      });
+
+    //   window.localforage
+    //     .setItem("books", bookArr)
+    //     .then(() => {
+    //       this.props.handleFetchBooks();
+    //       if (this.props.mode === "shelf") {
+    //         let shelfTitles = Object.keys(ShelfUtil.getShelf());
+    //         ShelfUtil.setShelf(shelfTitles[this.props.shelfIndex], book.key);
+    //       }
+    //       toast.success(this.props.t("Addition successful"));
+    //       setTimeout(() => {
+    //         this.state.isOpenFile && this.handleJump(book);
+    //         if (
+    //           StorageUtil.getReaderConfig("isOpenInMain") === "yes" &&
+    //           this.state.isOpenFile
+    //         ) {
+    //           this.setState({ isOpenFile: false });
+    //           return;
+    //         }
+    //         this.setState({ isOpenFile: false });
+    //         this.props.history.push("/manager/home");
+    //       }, 100);
+    //       return resolve();
+    //     })
+    //     .catch(() => {
+    //       toast.error(this.props.t("Import failed"));
+    //       return resolve();
+    //     });
     });
   };
 

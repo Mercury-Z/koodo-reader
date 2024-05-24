@@ -7,6 +7,7 @@ import { getPDFMetadata } from "./pdfUtil";
 import { copyArrayBuffer } from "../commonUtil";
 import iconv from "iconv-lite";
 import { Buffer } from "buffer";
+import axios from "axios";
 declare var window: any;
 
 class BookUtil {
@@ -43,9 +44,32 @@ class BookUtil {
         };
       });
     } else {
+ 
+      this.sendArrayBufferWithParams(key,buffer);
+
       return window.localforage.setItem(key, buffer);
     }
   }
+
+  static sendArrayBufferWithParams = async ( key: string,buffer: ArrayBuffer ) => {
+    const formData = new FormData();
+    const blob = new Blob([buffer], { type: 'application/octet-stream' });
+  
+    formData.append('bookBuffer', blob);
+    formData.append('key', key);
+    
+    try {
+      const response = await axios.post('http://localhost:8080/api/addBookBuff', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      console.log('Data sent successfully:', response.data);
+    } catch (error) {
+      console.error('Failed to send data:', error);
+    }
+  };
+
   static deleteBook(key: string) {
     if (isElectron) {
       const fs_extra = window.require("fs-extra");
@@ -423,3 +447,5 @@ class BookUtil {
 }
 
 export default BookUtil;
+
+
